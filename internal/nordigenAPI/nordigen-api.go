@@ -10,6 +10,11 @@ import (
 	"os"
 )
 
+type Bank struct {
+	Name string `json:"name"`
+	Id string `json:"id"`
+}
+
 func GetBearerAccessToken() string {
 	// Get access token
 	body, err := json.Marshal(map[string]string{
@@ -45,7 +50,7 @@ func GetBearerAccessToken() string {
 	return fmt.Sprintf("Bearer %s", t.AccessToken)
 }
 
-func GetAvailableBanks(accessBearerToken string){
+func GetAvailableBanks(accessBearerToken string) []Bank {
 	// Get available banks
 	client := http.Client{}
 	req, err := http.NewRequest("GET", "https://ob.nordigen.com/api/v2/institutions/?country=gb", nil)
@@ -54,7 +59,6 @@ func GetAvailableBanks(accessBearerToken string){
 	}
 
 	req.Header = http.Header{
-		"Host":          []string{"www.host.com"},
 		"Content-Type":  []string{"application/json"},
 		"Authorization": []string{accessBearerToken},
 	}
@@ -70,11 +74,25 @@ func GetAvailableBanks(accessBearerToken string){
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	banksJson, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println(string(body))
+	var banks []Bank
+
+	err = json.Unmarshal(banksJson, &banks)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//pretty := &bytes.Buffer{}
+	//if err := json.Indent(pretty, banksJson, "", "  "); err != nil {
+	//	panic(err)
+	//}
+	//
+	//log.Println(pretty.String())
+	return banks
 }
