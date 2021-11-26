@@ -81,7 +81,9 @@ func GetBearerAccessToken() string {
 	return fmt.Sprintf("Bearer %s", t.AccessToken)
 }
 
-func GetAvailableBanks(accessBearerToken string) []Bank {
+func GetAvailableBanks() []Bank {
+	accessBearerToken := GetBearerAccessToken()
+
 	// Get available banks
 	client := http.Client{}
 	req, err := http.NewRequest("GET", "https://ob.nordigen.com/api/v2/institutions/?country=gb", nil)
@@ -119,7 +121,9 @@ func GetAvailableBanks(accessBearerToken string) []Bank {
 	return banks
 }
 
-func CreateRequisition(accessBearerToken, instituteId, redirectURI string) Requisition {
+func CreateRequisition(instituteId, redirectURI string) Requisition {
+	accessBearerToken := GetBearerAccessToken()
+
 	body, err := json.Marshal(map[string]string{
 		"redirect":  redirectURI,
 		"institution_id": instituteId,
@@ -157,7 +161,9 @@ func CreateRequisition(accessBearerToken, instituteId, redirectURI string) Requi
 	return requisition
 }
 
-func ListAccounts(accessBearerToken, reqId string) Accounts {
+func ListAccounts(reqId string) Accounts {
+	accessBearerToken := GetBearerAccessToken()
+
 	client := http.Client{}
 	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/requisitions/%s/", reqId)
 	req, err := http.NewRequest("GET", uri, nil)
@@ -192,7 +198,9 @@ func ListAccounts(accessBearerToken, reqId string) Accounts {
 	return accounts
 }
 
-func ListTransactions(accessBearerToken, accountId string) []BookedTransaction {
+func ListTransactions(accountId string) []BookedTransaction {
+	accessBearerToken := GetBearerAccessToken()
+
 	client := http.Client{}
 	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/accounts/%s/transactions/", accountId)
 	req, err := http.NewRequest("GET", uri, nil)

@@ -16,10 +16,7 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	accessBearerToken := nordigenAPI.GetBearerAccessToken()
-	//fmt.Println(accessBearerToken)
-
-	banks := nordigenAPI.GetAvailableBanks(accessBearerToken)
+	banks := nordigenAPI.GetAvailableBanks()
 	//fmt.Printf("%+v", banks)
 
 	// Build link with monzo - step 4 of quickstart (see if we can just get requisition id from response body)
@@ -37,12 +34,12 @@ func main() {
 
 	// Flow requires user to click a link and authenticate with bank after running below code.
 	// Simulating by authenticating manually and injecting env var of id returned into next function instead
-	//req := nordigenAPI.CreateRequisition(accessBearerToken, bankId, "http://www.google.com")
+	//req := nordigenAPI.CreateRequisition(bankId, "http://www.google.com")
 
-	accounts := nordigenAPI.ListAccounts(accessBearerToken, os.Getenv("LINKED_REQ_ID"))
+	accounts := nordigenAPI.ListAccounts(os.Getenv("LINKED_REQ_ID"))
 	fmt.Printf("%+v", accounts)
 
-	transactions := nordigenAPI.ListTransactions(accessBearerToken, accounts.Accounts[0])
+	transactions := nordigenAPI.ListTransactions(accounts.Accounts[0])
 
 	fmt.Printf("%+v", transactions)
 
