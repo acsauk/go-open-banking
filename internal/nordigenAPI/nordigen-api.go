@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -46,7 +47,7 @@ type wrapper struct {
 	Transactions Transactions `json:"transactions"`
 }
 
-func GetBearerAccessToken() string {
+func getBearerAccessToken() string {
 	// Get access token
 	body, err := json.Marshal(map[string]string{
 		"secret_id":  os.Getenv("SECRET_ID"),
@@ -81,12 +82,9 @@ func GetBearerAccessToken() string {
 	return fmt.Sprintf("Bearer %s", t.AccessToken)
 }
 
-func GetAvailableBanks() []Bank {
-	accessBearerToken := GetBearerAccessToken()
-
-	// Get available banks
-	client := http.Client{}
-	req, err := http.NewRequest("GET", "https://ob.nordigen.com/api/v2/institutions/?country=gb", nil)
+func generateValidGetRequest(uri string) *http.Request {
+	accessBearerToken := getBearerAccessToken()
+	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		//Handle Error
 	}
@@ -95,6 +93,28 @@ func GetAvailableBanks() []Bank {
 		"Content-Type":  []string{"application/json"},
 		"Authorization": []string{accessBearerToken},
 	}
+
+	return req
+}
+
+func generateValidPostRequest(uri string, body io.Reader) *http.Request {
+	accessBearerToken := getBearerAccessToken()
+	req, err := http.NewRequest("GET", uri, body)
+	if err != nil {
+		//Handle Error
+	}
+
+	req.Header = http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{accessBearerToken},
+	}
+
+	return req
+}
+
+func GetAvailableBanks() []Bank {
+	req := generateValidGetRequest("https://ob.nordigen.com/api/v2/institutions/?country=gb")
+	client := http.Client{}
 
 	resp, err := client.Do(req)
 
@@ -122,24 +142,14 @@ func GetAvailableBanks() []Bank {
 }
 
 func CreateRequisition(instituteId, redirectURI string) Requisition {
-	accessBearerToken := GetBearerAccessToken()
-
 	body, err := json.Marshal(map[string]string{
 		"redirect":  redirectURI,
 		"institution_id": instituteId,
 	})
 
+	req := generateValidPostRequest("https://ob.nordigen.com/api/v2/requisitions/",  bytes.NewBuffer(body))
+
 	client := http.Client{}
-	req, err := http.NewRequest("POST", "https://ob.nordigen.com/api/v2/requisitions/",  bytes.NewBuffer(body))
-	if err != nil {
-		//Handle Error
-	}
-
-	req.Header = http.Header{
-		"Content-Type":  []string{"application/json"},
-		"Authorization": []string{accessBearerToken},
-	}
-
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -162,21 +172,10 @@ func CreateRequisition(instituteId, redirectURI string) Requisition {
 }
 
 func ListAccounts(reqId string) Accounts {
-	accessBearerToken := GetBearerAccessToken()
+	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/requisitions/%s/", reqId)
+	req := generateValidGetRequest(uri)
 
 	client := http.Client{}
-	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/requisitions/%s/", reqId)
-	req, err := http.NewRequest("GET", uri, nil)
-
-	if err != nil {
-		//Handle Error
-	}
-
-	req.Header = http.Header{
-		"Content-Type":  []string{"application/json"},
-		"Authorization": []string{accessBearerToken},
-	}
-
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -199,21 +198,10 @@ func ListAccounts(reqId string) Accounts {
 }
 
 func ListTransactions(accountId string) []BookedTransaction {
-	accessBearerToken := GetBearerAccessToken()
+	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/accounts/%s/transactions/", accountId)
+	req := generateValidGetRequest(uri)
 
 	client := http.Client{}
-	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/accounts/%s/transactions/", accountId)
-	req, err := http.NewRequest("GET", uri, nil)
-
-	if err != nil {
-		//Handle Error
-	}
-
-	req.Header = http.Header{
-		"Content-Type":  []string{"application/json"},
-		"Authorization": []string{accessBearerToken},
-	}
-
 	resp, err := client.Do(req)
 
 	if err != nil {
