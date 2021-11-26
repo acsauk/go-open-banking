@@ -15,6 +15,37 @@ type Bank struct {
 	Id string `json:"id"`
 }
 
+type Requisition struct {
+	Id string `json:"id"`
+	Redirect string `json:"redirect"`
+	Status string `json:"status"`
+	Agreements string `json:"agreements"`
+	Link string `json:"link"`
+}
+
+type Accounts struct {
+	Accounts []string `json:"accounts"`
+}
+
+type TransactionAmount struct {
+	Amount string `json:"amount"`
+	Currency string `json:"currency"`
+}
+
+type BookedTransaction struct {
+	Date string `json:"bookingDate"`
+	CreditorName string `json:"creditorName"`
+	TransactionAmount TransactionAmount `json:"transactionAmount"`
+}
+
+type Transactions struct {
+	BookedTransactions []BookedTransaction `json:"booked"`
+}
+
+type wrapper struct {
+	Transactions Transactions `json:"transactions"`
+}
+
 func GetBearerAccessToken() string {
 	// Get access token
 	body, err := json.Marshal(map[string]string{
@@ -64,9 +95,6 @@ func GetAvailableBanks(accessBearerToken string) []Bank {
 	}
 
 	resp, err := client.Do(req)
-	if err != nil {
-		//Handle Error
-	}
 
 	if err != nil {
 		log.Fatal(err)
@@ -88,11 +116,113 @@ func GetAvailableBanks(accessBearerToken string) []Bank {
 		log.Fatal(err)
 	}
 
-	//pretty := &bytes.Buffer{}
-	//if err := json.Indent(pretty, banksJson, "", "  "); err != nil {
-	//	panic(err)
-	//}
-	//
-	//log.Println(pretty.String())
 	return banks
+}
+
+func CreateRequisition(accessBearerToken, instituteId, redirectURI string) Requisition {
+	body, err := json.Marshal(map[string]string{
+		"redirect":  redirectURI,
+		"institution_id": instituteId,
+	})
+
+	client := http.Client{}
+	req, err := http.NewRequest("POST", "https://ob.nordigen.com/api/v2/requisitions/",  bytes.NewBuffer(body))
+	if err != nil {
+		//Handle Error
+	}
+
+	req.Header = http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{accessBearerToken},
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	reqJSON, err := ioutil.ReadAll(resp.Body)
+
+	var requisition Requisition
+
+	err = json.Unmarshal(reqJSON, &requisition)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return requisition
+}
+
+func ListAccounts(accessBearerToken, reqId string) Accounts {
+	client := http.Client{}
+	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/requisitions/%s/", reqId)
+	req, err := http.NewRequest("GET", uri, nil)
+
+	if err != nil {
+		//Handle Error
+	}
+
+	req.Header = http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{accessBearerToken},
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	reqJSON, err := ioutil.ReadAll(resp.Body)
+
+	var accounts Accounts
+
+	err = json.Unmarshal(reqJSON, &accounts)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return accounts
+}
+
+func ListTransactions(accessBearerToken, accountId string) []BookedTransaction {
+	client := http.Client{}
+	uri := fmt.Sprintf("https://ob.nordigen.com/api/v2/accounts/%s/transactions/", accountId)
+	req, err := http.NewRequest("GET", uri, nil)
+
+	if err != nil {
+		//Handle Error
+	}
+
+	req.Header = http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{accessBearerToken},
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	transactionsJSON, err := ioutil.ReadAll(resp.Body)
+
+	var wrapper wrapper
+
+	err = json.Unmarshal(transactionsJSON, &wrapper)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return wrapper.Transactions.BookedTransactions
 }
